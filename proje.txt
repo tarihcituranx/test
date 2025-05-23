@@ -1,0 +1,749 @@
+import requests
+from bs4 import BeautifulSoup
+import json
+import os
+import time
+
+# AlazNet API için Temel URL ve Başlıklar
+BASE_URL_ALAZNET = "https://alaznet.com.tr/service/altyapi/"
+ALAZNET_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0",
+    "Accept": "*/*",
+    "Accept-Language": "tr,en;q=0.9,en-GB;q=0.8,en-US;q=0.7",
+    "Referer": "https://alaznet.com.tr/service/altyapi/sayfa.php"
+}
+
+# Superonline (D-Smart API) için Sabitler
+SUPERONLINE_BASE_URL_DSMART = "https://www.dsmart.com.tr/api/v1/public/search/internet"
+DSMART_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0", # Güncel bir User-Agent
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7", # Genel bir Accept-Language
+    "Connection": "keep-alive",
+    "Referer": "https://www.dsmart.com.tr/internet-altyapi-sorgulama",
+    "X-Requested-With": "XMLHttpRequest",
+    "Origin": "https://www.dsmart.com.tr",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin"
+}
+DSMART_COOKIES = {
+    # "popupShown-s1227": "shown" # Bu çerez dinamik olabilir veya gerekmeyebilir, test edilmeli.
+    # Gerekirse D-Smart sitesini ziyaret ederek güncel çerezler incelenebilir.
+    # Şimdilik script_Version16.py'deki gibi bırakıyorum ama yorum satırı yaptım.
+}
+
+
+def clear_screen():
+    """Ekranı temizler."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def get_options_alaznet(endpoint, params):
+    """AlazNet API'sinden adres seçeneklerini (ilçe, mahalle vb.) alır."""
+    try:
+        resp = requests.get(BASE_URL_ALAZNET + endpoint, params=params, headers=ALAZNET_HEADERS, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        options = []
+        for opt in soup.find_all("option"):
+            value = opt.get("value")
+            text = opt.text.strip()
+            if value and value != "":
+                options.append((value, text))
+        return options
+    except requests.exceptions.RequestException as e:
+        print(f"AlazNet seçenekleri alınırken hata ({endpoint}): {e}")
+        return []
+
+def select_option(options, label, allow_go_back=False):
+    """Kullanıcıya sunulan seçeneklerden birini seçmesini sağlar."""
+    if not options:
+        print(f"\nBu adımda ({label.lower()}) hiç seçenek bulunamadı.")
+        return None, None
+    
+    print(f"\n{label} Seçenekleri:")
+    for i, (_, name) in enumerate(options, 1):
+        print(f"{i}. {name}")
+    
+    prompt_parts = [f"{label} numarasını seçin (1-{len(options)})"]
+    if allow_go_back:
+        prompt_parts.append("g: geri")
+    prompt_parts.append("q: ana menü")
+    prompt_text = f"{prompt_parts[0]} ({', '.join(prompt_parts[1:])}): "
+
+    while True:
+        try:
+            secim_str = input(prompt_text).strip().lower()
+            if secim_str == 'q':
+                return "q", None 
+            if allow_go_back and secim_str == 'g':
+                return "go_back", None
+            
+            secim = int(secim_str)
+            if 1 <= secim <= len(options):
+                return options[secim-1]
+        except ValueError:
+            print("Lütfen geçerli bir numara veya komut girin.")
+        except Exception as e:
+            print(f"Beklenmedik bir hata oluştu: {e}")
+        print("Geçersiz seçim, tekrar deneyin.")
+
+def get_value_from_veriler_list(veriler_list, target_name):
+    """AlazNet API'sinden gelen 'Veriler' listesinden belirli bir 'name'e sahip değeri alır."""
+    if not veriler_list:
+        return None
+    for item in veriler_list:
+        if isinstance(item, dict) and item.get("name") == target_name:
+            return item.get("value")
+    return None
+
+def kbps_to_mbps_str_detailed(kbps_val, default_val="N/A"):
+    """Kbps değerini Mbps cinsinden ve orijinal Kbps değeriyle birlikte formatlar."""
+    if kbps_val and kbps_val != "N/A":
+        try:
+            float_val = float(kbps_val)
+            return f"{float_val / 1000:.0f} Mbps ({kbps_val} Kbps)" 
+        except ValueError:
+            return default_val
+    return default_val
+
+def superonline_query_sync(bbk_code: str | None, building_code_to_send_to_api: str | None = "") -> dict:
+    """
+    Superonline (D-Smart API üzerinden) altyapı sorgusunu senkron olarak yapar.
+    building_code_to_send_to_api genellikle boş gönderilir.
+    """
+    start_time = time.time()
+    bbk_to_send = str(bbk_code) if bbk_code is not None else ""
+    # script_Version16.py'de building_code_to_send_to_api her zaman "" (boş string) olarak ayarlanıyordu.
+    # Bu stratejiyi burada da koruyoruz.
+    building_code_final_for_api = "" # Her zaman boş gönderilecek.
+
+    print(f"Superonline (D-Smart API) sorgulanıyor (BBK='{bbk_to_send}', BinaKodu API'ye gönderilen='{building_code_final_for_api}')...")
+    
+    if not bbk_to_send:
+        print("Superonline sorgusu için BBK sağlanmadı.")
+        return {"error": "BBK sağlanmadı", "status": "input_error", "raw_response": ""}
+
+    # D-Smart API'si form verisi bekliyor (multipart/form-data)
+    # 'files' parametresi requests kütüphanesinde bu tür POST istekleri için kullanılır.
+    # (None, value) formatı, dosya adı olmayan bir form alanı belirtir.
+    files_payload = {
+        'BBK': (None, bbk_to_send),
+        'BuildingCode': (None, building_code_final_for_api)
+    }
+    response_text = ""
+
+    try:
+        # D-Smart API'si POST metodu ve files (form-data) ile çalışıyor.
+        response = requests.post(
+            SUPERONLINE_BASE_URL_DSMART,
+            files=files_payload, # Form verisi olarak BBK ve BuildingCode
+            headers=DSMART_HEADERS,
+            cookies=DSMART_COOKIES if DSMART_COOKIES else None, # Çerezler varsa ekle
+            timeout=25 # 25 saniye zaman aşımı
+        )
+        response_text = response.text
+        print(f"Superonline (D-Smart API) ham yanıt (Status: {response.status_code}, BBK: {bbk_to_send}): {response_text[:300]}...") # Yanıtın bir kısmını logla
+        
+        response.raise_for_status() # HTTP 4xx veya 5xx durum kodlarında hata fırlatır
+        result = response.json() # Yanıtı JSON olarak parse et
+        
+        print(f"Superonline (D-Smart API) sorgu süresi (BBK: {bbk_to_send}): {time.time() - start_time:.2f}s")
+        result['raw_response_success_preview'] = response_text[:200] # Başarılı yanıtın bir önizlemesini sakla
+        return result
+    except requests.exceptions.Timeout:
+        print(f"Superonline (D-Smart API) zaman aşımı (BBK={bbk_to_send})")
+        return {"error": "Sorgu zaman aşımına uğradı", "status": "timeout", "raw_response": "Timeout"}
+    except requests.exceptions.RequestException as e:
+        status_code = e.response.status_code if e.response is not None else "N/A"
+        print(f"Superonline (D-Smart API) RequestException (BBK={bbk_to_send}): Status {status_code}, Err: {e}, Resp: {response_text[:500]}")
+        return {"error": f"API Bağlantı Hatası: {e}", "status": str(status_code), "raw_response": response_text}
+    except json.JSONDecodeError:
+        print(f"Superonline (D-Smart API) JSON değil (BBK={bbk_to_send}): {response_text[:500]}")
+        status_code_from_resp = response.status_code if 'response' in locals() and response is not None else "N/A_JSON_ERR"
+        # D-Smart API'si bazen 200 OK dönse de JSON olmayan bir hata mesajı verebilir.
+        if status_code_from_resp == 200:
+             # Bu durum, API'nin bir iç hata mesajını HTML veya düz metin olarak döndürdüğü anlamına gelebilir.
+            return {
+                "meta": {"code": 200, "message": "OK_BUT_NOT_JSON"}, 
+                "data": {"Message": "Bir Hata Oluştu (Yanıt JSON Değil)", "Code": "200_NOT_JSON"}, # script_Version16.py'deki yapıya benzetildi
+                "raw_response": response_text, 
+                "status": "json_error_but_200"
+            }
+        return {"error": "Superonline yanıtı anlaşılamadı (JSON değil)", "raw_response": response_text, "status": "json_error"}
+    except Exception as e:
+        print(f"Superonline (D-Smart API) genel hata (BBK={bbk_to_send}): {e}")
+        return {"error": f"Bilinmeyen hata: {str(e)}", "raw_response": response_text or "Genel hata", "status": "general_error"}
+
+
+def display_structured_details(alaznet_data, superonline_data=None, queried_bbk=None):
+    """AlazNet ve Superonline verilerini yapılandırılmış formatta gösterir."""
+    print("\n--- Formatlı Teknik Detaylar ---")
+    
+    # --- AlazNet Bölümü ---
+    print("\n=== Türk Telekom (AlazNet) Altyapı Detayları ===")
+    if not alaznet_data or alaznet_data.get("_error_"):
+        print("AlazNet verisi alınamadı veya hata oluştu:", alaznet_data.get("_error_", "Bilinmeyen hata"))
+    else:
+        api_main_tip = alaznet_data.get("tip", "Bilinmiyor")
+        detay = alaznet_data.get("detay", {})
+        api_main_hiz = alaznet_data.get("hiz", "N/A") 
+
+        bbk_kodu_display = queried_bbk or alaznet_data.get("aciklama", {}).get("AdresKodu", {}).get("Kod", "N/A")
+
+        veriler_ana_liste = detay.get("Veriler") 
+        fiber_veriler_listesi = detay.get("FiberVeriler")
+        vdsl_veriler_listesi = detay.get("VdslVeriler") 
+
+        mudurluk_adi = get_value_from_veriler_list(fiber_veriler_listesi, "SNTRLMDA") or \
+                       get_value_from_veriler_list(vdsl_veriler_listesi, "SNTRLMDA") or \
+                       get_value_from_veriler_list(veriler_ana_liste, "SNTRLMDA") or "N/A"
+        santral_adi_display = detay.get("SantralAdi", "N/A")
+        santral_mesafe_display = detay.get("SantralMesafe", "N/A")
+
+        effective_fttx_type = "Yok / Uygulanamaz"
+        port_max_hizi_label = "Port Max Hızı (Altyapı Kapasitesi)"
+        port_max_hizi_display = f"{api_main_hiz} Mbps" if str(api_main_hiz).isdigit() else "N/A"
+        service_speed_note = ""
+        speed_asterisk = "" 
+
+        if api_main_tip == "FIBER" and str(detay.get("FiberDurum")) == "1":
+            fttx1gb_fiber_val = get_value_from_veriler_list(fiber_veriler_listesi, "FTTX1GB")
+            if fttx1gb_fiber_val == "1":
+                effective_fttx_type = "FTTH (Gigabit)"
+                service_speed_note = "Bu altyapı genellikle 1000 Mbps (Gigabit) hızı destekler."
+            elif fttx1gb_fiber_val == "-2": # FTTB-ETH durumu
+                effective_fttx_type = "FTTB-ETH*"
+                port_max_hizi_label = "Daireye Tahmini Hız (İSS Paketi)"
+                port_max_hizi_display = "100 Mbps*" 
+                speed_asterisk = "*"
+                service_speed_note = (f"*FTTB-ETH altyapılarında daireye ulaşan hızın 100 Mbps ile sınırlı olabileceği gözlemlenmiştir.\n"
+                                      f"  (Binaya kadar fiber kapasitesi: {api_main_hiz} Mbps). Lütfen İSS'niz ile güncel sunulan hızı teyit edin.")
+            else:
+                effective_fttx_type = "Fiber (Detay Belirsiz)"
+                service_speed_note = "Altyapı hız potansiyeli için İSS ile görüşün."
+        
+        is_emri_value = get_value_from_veriler_list(fiber_veriler_listesi, "ACKISEMRI") or \
+                        get_value_from_veriler_list(vdsl_veriler_listesi, "ACKISEMRI") or \
+                        get_value_from_veriler_list(veriler_ana_liste, "ACKISEMRI")
+        is_emri_display = "YOK"
+        if is_emri_value and is_emri_value.strip() and is_emri_value.strip() != "|" and is_emri_value.strip() != "| |":
+            is_emri_display = f"VAR ({is_emri_value.strip()})"
+        
+        abonelik_durumu_display = "Belirlenemedi (Detay için İSS ile görüşün)"
+        if detay.get("adslSoapReturn") == "Aktif abonelik var" or \
+           detay.get("vdslSoapReturn") == "Aktif abonelik var" or \
+           detay.get("fiberSoapReturn") == "Aktif abonelik var":
+            abonelik_durumu_display = "Aktif Abonelik Var (TT veya Altyapısını Kullanan İSS)"
+        elif detay.get("adslSoapReturn") == "PSTN ve BBK ile aktif abonelik yok" and \
+             detay.get("vdslSoapReturn") == "PSTN ve BBK ile aktif abonelik yok" and \
+             detay.get("fiberSoapReturn") == "PSTN ve BBK ile aktif abonelik yok":
+            abonelik_durumu_display = "Abonelik bulunmamaktadır (TT Sistemi)"
+
+        print("\nİnternet Bağlantı Bilgileri (Türk Telekom)")
+        print(f"  Abonelik Durumu (TT Sistemi): {abonelik_durumu_display}")
+
+        if api_main_tip == "FIBER" and str(detay.get("FiberDurum")) == "1":
+            print(f"\n  Altyapı: FIBER {speed_asterisk}")
+            print("  ----------------------------------------------------")
+            fiber_bos_port_val = str(detay.get("FiberBosPort", "N/A"))
+            fiber_bos_port_display = "VAR" if fiber_bos_port_val == "1" else ("YOK" if fiber_bos_port_val == "0" else "Bilinmiyor")
+            print(f"  | Boş Port                  | {fiber_bos_port_display:<25} |")
+            print(f"  | {port_max_hizi_label:<25} | {port_max_hizi_display:<25} |")
+            print(f"  | Olt Modeli                | {'N/A (API Bilgisi Yok)':<25} |") # AlazNet API'sinde OLT modeli bilgisi yok
+            print("  ----------------------------------------------------")
+            if service_speed_note:
+                print(f"  Not: {service_speed_note}")
+        
+        elif api_main_tip == "VDSL" and str(detay.get("VdslDurum")) == "1":
+            print("\n  Altyapı: VDSL")
+            print("  ----------------------------------------------------")
+            vdsl_bos_port_val = str(detay.get("VdslBosPort", "N/A"))
+            vdsl_bos_port_display = "VAR" if vdsl_bos_port_val == "1" else ("YOK" if vdsl_bos_port_val == "0" else "Bilinmiyor")
+            print(f"  | Boş Port (VDSL)           | {vdsl_bos_port_display:<25} |")
+            
+            vdsl_max_hiz_kbps = detay.get("VdslMaksimumHiz", "N/A") 
+            vdsl_max_hiz_display = kbps_to_mbps_str_detailed(vdsl_max_hiz_kbps)
+            print(f"  | Santral Max Hız (VDSL)    | {vdsl_max_hiz_display:<25} |")
+            
+            daire_hizi_vdsl = f"{api_main_hiz} Mbps" if str(api_main_hiz).isdigit() else "N/A"
+            print(f"  | Daireye Tahmini Hız (VDSL)| {daire_hizi_vdsl:<25} |")
+            if santral_mesafe_display != "N/A" and santral_mesafe_display != "0":
+                print(f"  | Santral Mesafesi          | {str(santral_mesafe_display) + ' metre':<25} |")
+            print("  ----------------------------------------------------")
+            is_fttc_val = get_value_from_veriler_list(vdsl_veriler_listesi, "ISFTTC") or \
+                          get_value_from_veriler_list(veriler_ana_liste, "ISFTTC") or "N/A"
+            if is_fttc_val != "N/A" and is_fttc_val.strip() and is_fttc_val.lower() != "yok":
+                fttc_note = (f"  Not: Bu adreste '{is_fttc_val}' olarak belirtilen Saha Dolabı (FTTC/B) altyapısı olabilir.\n"
+                             f"       Bu sistemde fiber, saha dolabına/binaya kadar gelir ve daireye bağlantı bakır kablo (VDSL) ile sağlanır.\n"
+                             f"       Bu, geleneksel ADSL'e göre daha yüksek hızlar sunar.")
+                print(fttc_note)
+
+        elif api_main_tip == "ADSL" and str(detay.get("AdslDurum")) == "1":
+            print("\n  Altyapı: ADSL")
+            print("  ----------------------------------------------------")
+            adsl_bos_port_val = str(detay.get("BosPort", "N/A")) # AlazNet ADSL'de "BosPort" kullanıyor
+            adsl_bos_port_display = "VAR" if adsl_bos_port_val == "1" else ("YOK" if adsl_bos_port_val == "0" else "Bilinmiyor")
+            print(f"  | Boş Port (ADSL)           | {adsl_bos_port_display:<25} |")
+
+            adsl_max_hiz_kbps = detay.get("AdslMaksimumHiz", "N/A")
+            adsl_max_hiz_display = kbps_to_mbps_str_detailed(adsl_max_hiz_kbps)
+            print(f"  | Santral Max Hız (ADSL)    | {adsl_max_hiz_display:<25} |")
+            
+            daire_hizi_adsl = f"{api_main_hiz} Mbps" if str(api_main_hiz).isdigit() else "N/A"
+            print(f"  | Daireye Tahmini Hız (ADSL)| {daire_hizi_adsl:<25} |")
+            if santral_mesafe_display != "N/A" and santral_mesafe_display != "0":
+                print(f"  | Santral Mesafesi          | {str(santral_mesafe_display) + ' metre':<25} |")
+            print("  ----------------------------------------------------")
+            is_fttc_val = get_value_from_veriler_list(veriler_ana_liste, "ISFTTC") or "N/A" # ADSL için de kontrol edilebilir
+            if is_fttc_val != "N/A" and is_fttc_val.strip() and is_fttc_val.lower() != "yok":
+                 fttc_note = (f"  Not: Bu adreste '{is_fttc_val}' olarak belirtilen Saha Dolabı (FTTC/B) altyapısı olabilir.\n"
+                             f"       Bu sistemde fiber, saha dolabına/binaya kadar gelir ve daireye bağlantı bakır kablo ile sağlanır.")
+                 print(fttc_note)
+        
+        print("\nGenel Bilgiler (Türk Telekom)")
+        print("  ----------------------------------------------------")
+        print(f"  | BBK Kodu                  | {str(bbk_kodu_display):<25} |")
+        print(f"  | Müdürlük Adı              | {mudurluk_adi:<25} |")
+        print(f"  | Santral Adı               | {santral_adi_display:<25} |")
+        if api_main_tip == "FIBER": 
+            print(f"  | FTTX Altyapı Türü         | {effective_fttx_type:<25} |")
+        elif api_main_tip in ["VDSL", "ADSL"]:
+            is_fttc_val_genel = get_value_from_veriler_list(vdsl_veriler_listesi, "ISFTTC") or \
+                                get_value_from_veriler_list(veriler_ana_liste, "ISFTTC") or "N/A"
+            if is_fttc_val_genel != "N/A" and is_fttc_val_genel.strip() and is_fttc_val_genel.lower() != "yok":
+                 print(f"  | Saha Dolabı Bilgisi       | {is_fttc_val_genel:<25} |")
+            # Mesafe sadece doğrudan santral bağlantısı varsa anlamlı, FTTC/B varsa dolap mesafesi önemli olur (API'de yok)
+            elif santral_mesafe_display != "N/A" and santral_mesafe_display != "0": 
+                print(f"  | Santral Mesafesi          | {str(santral_mesafe_display) + ' m (Doğrudan Santral)':<25} |")
+
+        print(f"  | İş Emri                   | {is_emri_display:<25} |")
+        print("  ----------------------------------------------------")
+
+    # --- Superonline Bölümü ---
+    print("\n\n=== Superonline (D-Smart API) Altyapı Detayları ===")
+    if not superonline_data:
+        print("Superonline verisi sorgulanmadı veya alınamadı.")
+    elif superonline_data.get("error"):
+        print(f"Superonline sorgu hatası: {superonline_data.get('error')}")
+        if superonline_data.get("raw_response"):
+            print(f"  Ham Yanıt (kısmi): {superonline_data.get('raw_response')[:200]}...")
+    elif isinstance(superonline_data.get("data"), dict) and "Message" in superonline_data.get("data"):
+        # D-Smart API'sinin "Bir Hata Oluştu" gibi mesajları
+        print(f"Superonline API Yanıtı: {superonline_data['data'].get('Message', 'Bilinmeyen API mesajı')}")
+        if superonline_data['data'].get('Code'):
+            print(f"  API Kodu: {superonline_data['data']['Code']}")
+        if superonline_data.get('raw_response_success_preview'): # veya raw_response
+             print(f"  Ham Yanıt (kısmi): {superonline_data.get('raw_response_success_preview') or superonline_data.get('raw_response')[:200]}...")
+    elif isinstance(superonline_data.get("data"), list):
+        sol_results = superonline_data.get("data")
+        if not sol_results:
+            print("Belirtilen BBK için Superonline altyapısı bulunamadı veya port yok.")
+        else:
+            print("Bulunan Superonline Altyapı Seçenekleri:")
+            print("  ---------------------------------------------------------------------------------")
+            print(f"  | {'Sağlayıcı':<12} | {'Teknoloji':<15} | {'Max Hız':<12} | {'Port Durumu':<15} |")
+            print("  ---------------------------------------------------------------------------------")
+            for item in sol_results:
+                if isinstance(item, dict):
+                    provider = item.get("provider", "N/A")
+                    tech = item.get("tech", "N/A")
+                    max_speed = item.get("maxSpeed", "N/A")
+                    port_available = "Mevcut" if item.get("portAvailable") is True else \
+                                     ("Yok" if item.get("portAvailable") is False else "Bilinmiyor")
+                    print(f"  | {provider:<12} | {tech:<15} | {max_speed:<12} | {port_available:<15} |")
+            print("  ---------------------------------------------------------------------------------")
+    else:
+        print("Superonline yanıtı anlaşılamadı veya beklenmedik format.")
+        if superonline_data.get('raw_response_success_preview'):
+             print(f"  Ham Yanıt (kısmi): {superonline_data.get('raw_response_success_preview')[:200]}...")
+        elif superonline_data.get('raw_response'):
+             print(f"  Ham Yanıt (kısmi): {superonline_data.get('raw_response')[:200]}...")
+
+
+    input("\nDetaylar gösterildi. 'Sonraki Adım' menüsüne dönmek için Enter'a basın...")
+
+
+def display_results(alaznet_data, superonline_data=None, queried_bbk=None):
+    """AlazNet ve Superonline sorgu özetini gösterir."""
+    clear_screen()
+    print("\n--- Altyapı Sorgu Özeti ---") 
+
+    # --- AlazNet Özeti ---
+    print("\n-- Türk Telekom (AlazNet) Özeti --")
+    if not alaznet_data or alaznet_data.get("_error_"):
+        print("AlazNet verisi alınamadı veya hata oluştu:", alaznet_data.get("_error_", "Bilinmeyen hata"))
+        alaznet_full_adres = "Alınamadı"
+        alaznet_tip = "N/A"
+        alaznet_hiz = "N/A"
+        alaznet_port = "N/A"
+        fttx_turu_ozet = "N/A"
+        fttb_eth_active_for_warning_alaz = False
+        speed_asterisk_summary_alaz = ""
+    else:
+        detay_alaz = alaznet_data.get("detay", {})
+        api_main_tip_alaz = alaznet_data.get("tip", "Bilinmiyor") 
+        bbk_to_display_alaz = queried_bbk or alaznet_data.get("aciklama", {}).get("AdresKodu", {}).get("Kod")
+
+        if bbk_to_display_alaz:
+            print(f"Sorgulanan BBK Kodu (Daire ID): {bbk_to_display_alaz}")
+        
+        alaznet_full_adres_raw = alaznet_data.get("full_adres") or detay_alaz.get("AcikAdres")
+        alaznet_full_adres = (alaznet_full_adres_raw.get("Adres", str(alaznet_full_adres_raw)) 
+                              if isinstance(alaznet_full_adres_raw, dict) 
+                              else str(alaznet_full_adres_raw if alaznet_full_adres_raw else "Adres bilgisi bulunamadı."))
+        print(f"Adres (AlazNet): {alaznet_full_adres}")
+
+        alaznet_tip = alaznet_data.get("tip", "N/A")
+        alaznet_hiz_raw = alaznet_data.get("hiz", "N/A") 
+        alaznet_port_raw = str(alaznet_data.get("port", "N/A"))
+        
+        fttb_eth_active_for_warning_alaz = False
+        speed_asterisk_summary_alaz = ""
+        alaznet_hiz = f"{alaznet_hiz_raw} Mbps" if str(alaznet_hiz_raw).isdigit() else "N/A"
+        fttx_turu_ozet = "N/A (Fiber Değil)"
+
+        if api_main_tip_alaz == "FIBER" and str(detay_alaz.get("FiberDurum")) == "1":
+            fiber_veriler_listesi_alaz = detay_alaz.get("FiberVeriler")
+            fttx1gb_fiber_val_alaz = get_value_from_veriler_list(fiber_veriler_listesi_alaz, "FTTX1GB")
+            if fttx1gb_fiber_val_alaz == "1":
+                fttx_turu_ozet = "FTTH (Gigabit)"
+            elif fttx1gb_fiber_val_alaz == "-2": # FTTB-ETH
+                fttx_turu_ozet = "FTTB-ETH*"
+                alaznet_hiz = "100 Mbps*" # Daireye ulaşan tahmini hız
+                fttb_eth_active_for_warning_alaz = True
+                speed_asterisk_summary_alaz = "*"
+            else:
+                fttx_turu_ozet = "Fiber (Detay Belirsiz)"
+        
+        alaznet_port = 'Var' if alaznet_port_raw == '1' else ('Yok' if alaznet_port_raw == '0' else 'Bilinmiyor')
+        
+        print("\n**Genel Altyapı Bilgisi (Birincil Servis - TT):**")
+        print(f"  Aktif Altyapı Türü: {alaznet_tip}{speed_asterisk_summary_alaz}")
+        print(f"  Tahmini Alınabilir Hız: {alaznet_hiz}")
+        print(f"  Genel Boş Port Durumu (Birincil): {alaznet_port}")
+        
+        if api_main_tip_alaz == "FIBER": 
+             print(f"  Detaylı Fiber Türü (Tahmini): {fttx_turu_ozet}")
+        elif api_main_tip_alaz in ["VDSL", "ADSL"]:
+            santral_mesafe_display_alaz = detay_alaz.get("SantralMesafe", "N/A")
+            if santral_mesafe_display_alaz != "N/A" and str(santral_mesafe_display_alaz) != "0":
+                print(f"  Santral Mesafesi (Tahmini): {santral_mesafe_display_alaz} metre")
+            
+            is_fttc_val_alaz = get_value_from_veriler_list(detay_alaz.get("VdslVeriler"), "ISFTTC") or \
+                               get_value_from_veriler_list(detay_alaz.get("Veriler"), "ISFTTC") or "N/A"
+            if is_fttc_val_alaz != "N/A" and is_fttc_val_alaz.strip() and is_fttc_val_alaz.lower() != "yok":
+                print(f"  Saha Dolabı (FTTC/B) Bilgisi: {is_fttc_val_alaz}")
+
+    # --- Superonline Özeti ---
+    print("\n\n-- Superonline (D-Smart API) Özeti --")
+    if not superonline_data:
+        print("Superonline verisi sorgulanmadı veya alınamadı.")
+    elif superonline_data.get("error"):
+        print(f"Superonline sorgu hatası: {superonline_data.get('error')}")
+    elif isinstance(superonline_data.get("data"), dict) and "Message" in superonline_data.get("data"):
+        # D-Smart API'sinin "Bir Hata Oluştu" gibi mesajları
+        print(f"Superonline API Yanıtı: {superonline_data['data'].get('Message', 'Bilinmeyen API mesajı')}")
+    elif isinstance(superonline_data.get("data"), list):
+        sol_results = superonline_data.get("data")
+        if not sol_results:
+            print("Belirtilen BBK için Superonline altyapısı bulunamadı veya port yok.")
+        else:
+            print("Superonline Durumu: Altyapı seçenekleri mevcut (Detaylar için 'Formatlı Teknik Detaylar'a bakın).")
+            # Örnek bir SOL fiber bilgisi
+            sol_fiber_found = False
+            for item in sol_results:
+                if isinstance(item, dict) and item.get("provider") == "SOL" and "Fiber" in item.get("tech", "") and item.get("portAvailable") is True:
+                    print(f"  -> Öne Çıkan: Superonline Fiber ({item.get('maxSpeed', 'N/A')}) mevcut görünüyor.")
+                    sol_fiber_found = True
+                    break
+            if not sol_fiber_found:
+                 print("  -> Genel Superonline durumu: Altyapı/port bilgileri için detaylara bakınız.")
+    else:
+        print("Superonline yanıtı anlaşılamadı veya beklenmedik format.")
+
+    print("\n--------------------------------------------------")
+    print("UYARI: Bu sorgulama Türk Telekom (AlazNet üzerinden) ve Superonline (D-Smart API üzerinden) verilerini kullanır.")
+    print("Burada gösterilen altyapı bilgileri ve hızlar tahminidir.")
+    if not alaznet_data or alaznet_data.get("_error_"): # Sadece AlazNet için uyarı
+        pass # AlazNet hatası zaten yukarıda belirtildi
+    elif fttb_eth_active_for_warning_alaz: # AlazNet FTTB-ETH uyarısı
+        print("* (TT) FTTB-ETH (Binaya Kadar Fiber, sonra Ethernet) altyapılarında, daireye ulaşan hızın")
+        print("  İSS veya bina içi tesisat kaynaklı olarak 100 Mbps ile sınırlı olabileceği gözlemlenmiştir.")
+        print(f"  API'nin gösterdiği daha yüksek altyapı kapasitesi (örn: {alaznet_data.get('hiz', 'N/A')} Mbps) genellikle binaya kadar olan fiberin teorik potansiyelidir.")
+    
+    # AlazNet FTTC/B uyarısı (VDSL/ADSL için)
+    if alaznet_data and not alaznet_data.get("_error_"):
+        detay_alaz_for_warning = alaznet_data.get("detay", {})
+        is_fttc_val_for_warning_alaz = get_value_from_veriler_list(detay_alaz_for_warning.get("VdslVeriler"), "ISFTTC") or \
+                                       get_value_from_veriler_list(detay_alaz_for_warning.get("Veriler"), "ISFTTC") or "N/A"
+        if alaznet_data.get("tip") in ["VDSL", "ADSL"] and is_fttc_val_for_warning_alaz != "N/A" and is_fttc_val_for_warning_alaz.strip() and is_fttc_val_for_warning_alaz.lower() != "yok":
+            print(f"** (TT) '{is_fttc_val_for_warning_alaz}' olarak belirtilen Saha Dolabı (FTTC/B) sisteminde fiber, dolaba/binaya kadar gelir;")
+            print("   daireye bağlantı bakır kablo (VDSL/ADSL) ile sağlanır. Hız, mesafeye ve hat kalitesine bağlıdır.")
+
+    print("\nGerçekte alabileceğiniz hız, İSS'nizin sunduğu paketlere ve bağlantı türüne göre değişebilir.")
+    print("Birçok alternatif internet servis sağlayıcısı (İSS) da bu altyapıları kullanır.")
+    print("En doğru ve güncel bilgi için lütfen doğrudan internet servis sağlayıcınızla iletişime geçiniz.")
+    print("--------------------------------------------------")
+        
+    while True:
+        print("\nSonraki Adım:")
+        print("1. Formatlı Teknik Detayları Gör (TT + Superonline)")
+        print("2. Tüm Ham JSON Verisini Gör (TT + Superonline)")
+        print("3. Yeni Sorgu Başlat")
+        print("4. Programdan Çık")
+        choice_after_results = input("Seçiminiz (1, 2, 3, 4): ").strip()
+
+        if choice_after_results == '1':
+            clear_screen() 
+            display_structured_details(alaznet_data, superonline_data, queried_bbk)
+            clear_screen()
+            continue 
+        elif choice_after_results == '2':
+            clear_screen() 
+            print("\n--- Tüm Ham JSON Verisi ---")
+            combined_json_data = {
+                "sorgulanan_bbk": queried_bbk,
+                "turk_telekom_alaznet": alaznet_data if alaznet_data else {"_error_": "Veri yok veya sorgulanmadı"},
+                "superonline_dsmart": superonline_data if superonline_data else {"_error_": "Veri yok veya sorgulanmadı"}
+            }
+            print(json.dumps(combined_json_data, indent=4, ensure_ascii=False))
+            input("\nHam JSON gösterildi. 'Sonraki Adım' menüsüne dönmek için Enter'a basın...")
+            clear_screen()
+            continue
+        elif choice_after_results == '3':
+            return "new_query"
+        elif choice_after_results == '4':
+            return "exit"
+        else:
+            print("Geçersiz seçim. Lütfen 1, 2, 3 veya 4 girin.")
+            time.sleep(1)
+            clear_screen()
+
+
+def altyapi_sorgula_main():
+    """Ana altyapı sorgulama döngüsünü yönetir."""
+    program_exit_requested = False
+    while True:
+        if program_exit_requested:
+            break
+        
+        clear_screen() 
+        print("--- Genişletilmiş Altyapı Sorgulama Aracı (TT & Superonline) ---")
+        print("(Bu araç, AlazNet üzerinden Türk Telekom ve D-Smart API üzerinden Superonline yerleşik altyapı verilerini sorgular.)")
+        print("\nLütfen sorgulama yönteminizi seçin:")
+        print("1. Adres Bilgileri ile (Sadece Türk Telekom için adres seçimi, sonra Superonline otomatik sorgulanır)")
+        print("2. BBK (Daire ID) ile Doğrudan Sorgulama (TT ve Superonline)")
+        print("Q. Ana Menü / Çıkış")
+        
+        main_choice = ""
+        while main_choice not in ["1", "2", "q"]:
+            main_choice = input("Seçiminiz (1, 2 veya Q): ").strip().lower()
+
+        if main_choice == 'q':
+            print("Programdan çıkılıyor...")
+            break 
+
+        alaznet_daire_id_to_query = None
+        user_chose_quit_or_main_menu = False
+        
+        # Adres veya BBK ile AlazNet Daire ID'sini al
+        if main_choice == "1": # Adres ile sorgulama (AlazNet)
+            print("\nAdres Bilgileri ile Sorgulama ('q' ile ana menüye dönebilirsiniz):")
+            current_address_step = 0
+            selected_values = {} 
+
+            while current_address_step <= 5: # Plaka, İlçe, Mahalle, Sokak, Bina, Daire
+                if user_chose_quit_or_main_menu: break
+                
+                options_data = []
+                current_label = ""
+                allow_back_option = current_address_step > 0 
+
+                if current_address_step == 0: # Plaka (İl)
+                    current_label = "Plaka"
+                    plaka_input = input(f"{current_label} girin (örn: 06) (q: ana menü): ").strip().zfill(2).lower()
+                    if plaka_input == 'q': user_chose_quit_or_main_menu = True; continue
+                    if not plaka_input.isdigit() or len(plaka_input) != 2 :
+                        print("Geçersiz plaka formatı. Tekrar deneyin."); continue
+                    selected_values["plaka"] = plaka_input
+                    selected_values["plaka_ad"] = plaka_input # İsim olarak da plakayı tutalım
+                    current_address_step += 1
+                    continue
+                elif current_address_step == 1: # İlçe
+                    current_label = "İlçe"
+                    options_data = get_options_alaznet("district.php", {"city": selected_values["plaka"]})
+                elif current_address_step == 2: # Mahalle
+                    current_label = "Mahalle"
+                    options_data = get_options_alaznet("neighborhoods.php", {"district": selected_values["ilce_id"]})
+                elif current_address_step == 3: # Sokak/Cadde
+                    current_label = "Sokak/Cadde"
+                    options_data = get_options_alaznet("street.php", {"neighborhoods": selected_values["mahalle_id"]})
+                elif current_address_step == 4: # Bina
+                    current_label = "Bina"
+                    options_data = get_options_alaznet("building.php", {"street": selected_values["sokak_id"]})
+                elif current_address_step == 5: # Daire (BBK)
+                    current_label = "Daire"
+                    options_data = get_options_alaznet("home.php", {"building": selected_values["bina_id"]})
+
+                if not options_data and current_address_step > 0 :
+                    prev_step_keys = list(selected_values.keys())
+                    prev_selection_name = "Önceki seçim"
+                    if prev_step_keys: # En son seçilen _ad değerini bul
+                        for key_idx in range(len(prev_step_keys) -1, -1, -1):
+                            if not prev_step_keys[key_idx].endswith("_id"): # _ad ile biten bir anahtar arıyoruz
+                                prev_selection_name = selected_values[prev_step_keys[key_idx]]
+                                break
+                    print(f"'{prev_selection_name}' için {current_label.lower()} bulunamadı. Lütfen önceki seçiminizi gözden geçirin.")
+                    current_address_step -= 1 # Bir önceki adıma dön
+                    continue
+
+                val_id, val_ad = select_option(options_data, current_label, allow_go_back=allow_back_option)
+
+                if val_id == "q":
+                    user_chose_quit_or_main_menu = True; continue
+                if val_id == "go_back":
+                    if current_address_step > 0: current_address_step -= 1
+                    continue
+                if not val_id: # Seçim yapılamadıysa veya seçenek yoksa
+                    print(f"{current_label} seçimi yapılamadı. Tekrar deneyin veya geri ('g') gidin.")
+                    continue # Aynı adımda kal
+                
+                # Seçilen değerleri kaydet
+                if current_address_step == 1: selected_values["ilce_id"] = val_id; selected_values["ilce_ad"] = val_ad
+                elif current_address_step == 2: selected_values["mahalle_id"] = val_id; selected_values["mahalle_ad"] = val_ad
+                elif current_address_step == 3: selected_values["sokak_id"] = val_id; selected_values["sokak_ad"] = val_ad
+                elif current_address_step == 4: selected_values["bina_id"] = val_id; selected_values["bina_ad"] = val_ad
+                elif current_address_step == 5: selected_values["daire_id"] = val_id; selected_values["daire_ad"] = val_ad; alaznet_daire_id_to_query = val_id
+                
+                current_address_step += 1
+            
+            if user_chose_quit_or_main_menu: continue # Ana döngüye dön
+            if not alaznet_daire_id_to_query:
+                print("Adres seçimi tamamlanamadı.")
+                input("Ana menüye dönmek için Enter'a basın...")
+                continue
+        elif main_choice == "2": # BBK ile doğrudan sorgulama
+            print("\nBBK ile Doğrudan Sorgulama ('q' ile ana menüye dönebilirsiniz):")
+            while True:
+                daire_id_input = input("Lütfen BBK (Bağımsız Bölüm Kodu / Daire ID) girin: ").strip().lower()
+                if daire_id_input == 'q':
+                    user_chose_quit_or_main_menu = True; break
+                if daire_id_input.isdigit() and len(daire_id_input) > 0 : # BBK genellikle sayısaldır
+                    alaznet_daire_id_to_query = daire_id_input
+                    break
+                else:
+                    print("Geçersiz BBK Kodu. Lütfen sadece rakamlardan oluşan bir kod girin.")
+            if user_chose_quit_or_main_menu: continue
+        
+        if not alaznet_daire_id_to_query:
+             print("Sorgulanacak BBK/Daire ID alınamadı.")
+             input("Devam etmek için Enter'a basın...")
+             continue
+
+        # --- AlazNet (Türk Telekom) Sorgusu ---
+        clear_screen() 
+        print(f"\nAlazNet (Türk Telekom) sorgulanıyor (Daire ID: {alaznet_daire_id_to_query}), lütfen bekleyiniz...")
+        time.sleep(0.5) 
+        
+        alaznet_jsonData = None
+        alaznet_query_error = False
+        try:
+            resp_alaznet = requests.get(BASE_URL_ALAZNET + "sorgu.php", params={"daire_id": alaznet_daire_id_to_query}, headers=ALAZNET_HEADERS, timeout=20) 
+            resp_alaznet.raise_for_status()
+            alaznet_jsonData = resp_alaznet.json()
+            
+            # AlazNet API'sinin hata yapısını kontrol et
+            api_hata_flag_alaz = str(alaznet_jsonData.get("hata", "true")).lower() == "false" # 'false' ise hata var demek
+            detay_hata_kod_alaz = alaznet_jsonData.get("detay", {}).get("hataKod")
+            tip_mesaji_hata_iceriyor_alaz = isinstance(alaznet_jsonData.get("tip"), str) and "hata" in alaznet_jsonData.get("tip").lower()
+
+            if api_hata_flag_alaz or (detay_hata_kod_alaz is not None and detay_hata_kod_alaz != 100) or tip_mesaji_hata_iceriyor_alaz:
+                 alaznet_query_error = True
+                 alaznet_jsonData["_error_"] = "AlazNet API'den hata veya uyarı alındı." # Hata durumunu işaretle
+                 print("\n--- AlazNet Sorgu Hatası/Uyarı ---")
+                 if main_choice == "2" and alaznet_daire_id_to_query: # BBK ile sorgulandıysa BBK'yı göster
+                     print(f"Sorgulanan BBK Kodu (Daire ID): {alaznet_daire_id_to_query}")
+                 print(f"Adres (AlazNet): {alaznet_jsonData.get('full_adres', 'Adres bilgisi alınamadı.')}")
+                 error_message_alaz = "Belirtilen BBK/Daire ID için AlazNet altyapı bilgisi bulunamadı veya bir sorun oluştu."
+                 if isinstance(alaznet_jsonData.get("detay"), dict) and alaznet_jsonData["detay"].get("hataMesaj"):
+                     error_message_alaz += f"\nAlazNet API Detay Mesajı: {alaznet_jsonData['detay']['hataMesaj']}"
+                 if tip_mesaji_hata_iceriyor_alaz:
+                     error_message_alaz += f"\nAlazNet API Tip Mesajı: {alaznet_jsonData.get('tip')}"
+                 # Adres servisi hatası (aciklama.AdresKodu.returnCode != 100)
+                 aciklama_alaz = alaznet_jsonData.get("aciklama", {})
+                 if aciklama_alaz and aciklama_alaz.get("AdresKodu", {}).get("returnCode") != 100:
+                     error_message_alaz += f"\nAlazNet Adres Servisi Mesajı: {aciklama_alaz['AdresKodu'].get('returnMessage', '')}"
+                 print(error_message_alaz)
+            else:
+                print("AlazNet (Türk Telekom) sorgusu başarılı.")
+                # Başarılı sorguda BBK'yı alaznet_jsonData'dan da teyit edebiliriz.
+                # Superonline sorgusu için kullanılacak BBK:
+                # Öncelik AlazNet'in döndürdüğü AdresKodu.Kod, yoksa kullanıcının girdiği.
+                bbk_for_superonline = alaznet_jsonData.get("aciklama", {}).get("AdresKodu", {}).get("Kod", alaznet_daire_id_to_query)
+                if not bbk_for_superonline: # Eğer hala BBK yoksa (çok nadir bir durum)
+                    bbk_for_superonline = alaznet_daire_id_to_query
+
+
+        except requests.exceptions.JSONDecodeError:
+            alaznet_query_error = True
+            alaznet_jsonData = {"_error_": "AlazNet API yanıtı JSON formatında değil."}
+            print("\n--- AlazNet API Yanıt Hatası ---")
+            print("Alınan yanıt JSON formatında değil veya hatalı. API geçici olarak servis dışı olabilir.")
+            if 'resp_alaznet' in locals() and resp_alaznet is not None:
+                 print("Ham Yanıt (ilk 500 karakter):")
+                 print(resp_alaznet.text[:500] + "..." if len(resp_alaznet.text) > 500 else resp_alaznet.text)
+        except requests.exceptions.RequestException as e:
+            alaznet_query_error = True
+            alaznet_jsonData = {"_error_": f"AlazNet ağ veya API bağlantı hatası: {e}"}
+            print(f"AlazNet ağ veya API bağlantı hatası oluştu: {e}")
+        
+        # --- Superonline Sorgusu ---
+        superonline_jsonData = None
+        # AlazNet sorgusu başarılıysa veya hata olsa bile BBK biliniyorsa Superonline'ı sorgula
+        bbk_for_superonline_query = None
+        if alaznet_jsonData and not alaznet_jsonData.get("_error_"): # AlazNet başarılıysa
+            # AlazNet yanıtındaki BBK'yı kullan (aciklama.AdresKodu.Kod)
+            bbk_for_superonline_query = alaznet_jsonData.get("aciklama", {}).get("AdresKodu", {}).get("Kod")
+            if not bbk_for_superonline_query: # Eğer AlazNet AdresKodu.Kod dönmediyse, sorgulanan ID'yi kullan
+                 bbk_for_superonline_query = alaznet_daire_id_to_query
+        elif alaznet_daire_id_to_query: # AlazNet hatalı ama BBK ile sorgulandıysa, o BBK'yı kullan
+            bbk_for_superonline_query = alaznet_daire_id_to_query
+        
+        if bbk_for_superonline_query:
+            print(f"\nSuperonline sorgulanıyor (BBK: {bbk_for_superonline_query})...")
+            # Bina kodu D-Smart API'sine boş gönderiliyor (script_Version16.py stratejisi)
+            superonline_jsonData = superonline_query_sync(bbk_code=bbk_for_superonline_query, building_code_to_send_to_api="")
+            if superonline_jsonData and not superonline_jsonData.get("error"):
+                print("Superonline sorgusu tamamlandı.")
+            elif superonline_jsonData and superonline_jsonData.get("error"):
+                print(f"Superonline sorgusunda sorun: {superonline_jsonData.get('error')}")
+            else:
+                print("Superonline sorgusundan beklenmedik bir yanıt alındı veya sorgu yapılamadı.")
+        else:
+            print("\nSuperonline sorgusu için geçerli BBK bulunamadığından atlandı.")
+            superonline_jsonData = {"_error_": "Superonline sorgusu için BBK bulunamadı."}
+
+        # Sonuçları göster
+        action_from_results = display_results(alaznet_jsonData, superonline_jsonData, queried_bbk=alaznet_daire_id_to_query)
+        
+        if action_from_results == "new_query":
+            continue 
+        elif action_from_results == "exit":
+            program_exit_requested = True
+            print("Programdan çıkılıyor...") 
+        
+        if program_exit_requested: 
+            break 
+
+        # Hata sonrası veya beklenmedik durum için ana menüye dönüş
+        if not program_exit_requested: 
+            final_choice_after_action = ""
+            while final_choice_after_action not in ['e', 'h']:
+                final_choice_after_action = input("\nAna menüye dönmek için (E)vet, çıkmak için (H)ayır girin: ").strip().lower()
+            if final_choice_after_action == 'h':
+                print("Programdan çıkılıyor...")
+                break 
+        
+if __name__ == "__main__":
+    altyapi_sorgula_main()
