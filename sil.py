@@ -468,4 +468,4 @@ def main():
 
 if __name__ == "__main__":
     if not logging.getLogger().handlers: logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-    main() botun içine birşeyleri bozmadan milenicom sorgulama yapısını entegre edeceksin milenideki dummy token mantığı vs ne varsa. pdf oluşturma kısmına da ana dosyada olduğu gibi sol ile alakalı bilgileri vereceksin  "solAvailable": true, bu bilgi olacak sadece bu varsa Süperonline fiber altyapısı var demektir dsmart da sol ile alakalı veri çekemezse sadece tt verisi varsa altına bunu eklersin ptojedeki telegram bot tokenini olduğu gibi kullan
+    main()
