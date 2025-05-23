@@ -1,0 +1,459 @@
+{
+  "sorgulama_zamani_utc": "2025-05-23T09:31:08.594423+00:00",
+  "sorgulanan_alaznet_id": "50937911",
+  "sorgulanan_sol_bbk": "50937911",
+  "sorgulanan_sol_bina_kodu_apiye_gonderilen": "",
+  "turk_telekom_alaznet_yaniti": {
+    "hata": true,
+    "hiz": 1000,
+    "port": "1",
+    "tip": "FIBER",
+    "full_adres": "ÇOBANLI  MAH. AYDINLIK CAD. NO: 117 B DAİRE: 1        ATAKUM/SAMSUN",
+    "aciklama": {
+      "AcikAdres": {
+        "UlkeKodu": 1,
+        "UlkeAdi": "TÜRKİYE",
+        "IlKodu": 55,
+        "IlAdi": "SAMSUN",
+        "IlceKodu": 2072,
+        "IlceAdi": "ATAKUM",
+        "BucakKodu": 1641,
+        "BucakAdi": " ",
+        "KoyKodu": 37770,
+        "KoyAdi": " ",
+        "MahalleKodu": 61794,
+        "MahalleAdi": "ÇOBANLI  MAH. ",
+        "CSBMKodu": 894797,
+        "CSBMAdi": "AYDINLIK CAD. ",
+        "BinaKodu": 28547309,
+        "DisKapiNo": "117 B",
+        "BlokAdi": "KORU  PARK SITESI B1 BLOK",
+        "SiteAdi": "",
+        "BBolumKodu": 50937911,
+        "IcKapiNo": "1",
+        "PostaKodu": "",
+        "AcikAdres": "ÇOBANLI  MAH. AYDINLIK CAD. NO: 117 B DAİRE: 1        ATAKUM/SAMSUN",
+        "returnCode": 100,
+        "returnMessage": "Islem Basarili"
+      },
+      "AdresKodu": {
+        "Kod": 50937911,
+        "IcKapiNo": "1",
+        "AdresNo": 3673608034,
+        "BinaKodu": 28547309,
+        "Nitelik": -99,
+        "Durum": 1,
+        "KarsilikKod": null,
+        "SurumNo": 297267465,
+        "GuncellemeZamani": "2024-09-09T07:12:49.000Z",
+        "returnCode": 100,
+        "returnMessage": "Islem Basarili"
+      },
+      "PostaKodu": {
+        "Kod": 0,
+        "IlKodu": null,
+        "Ad": "",
+        "Durum": 0,
+        "SurumNo": 0,
+        "GuncellemeZamani": "2025-05-23T08:30:08.516Z",
+        "returnCode": 102,
+        "returnMessage": "TTAdres query uzak cagrida hata! Activity Status : FAILURE -> Detay : Aradığınız kriterlere uygun adres nesnesi (BELEDIYE) bulunamadı."
+      }
+    },
+    "detay": {
+      "hataKod": 100,
+      "hataMesaj": "25001100 - Islem Basarili",
+      "Veriler": [
+        {
+          "name": "SNTRLHZMT",
+          "value": "N/A"
+        },
+        {
+          "name": "BSPRT",
+          "value": "1"
+        },
+        {
+          "name": "IPDSLM",
+          "value": "N/A"
+        },
+        {
+          "name": "IPTVHZMT",
+          "value": "1"
+        },
+        {
+          "name": "SNTRLIDX",
+          "value": "14900050"
+        },
+        {
+          "name": "SNTRLAD",
+          "value": "ATAKUM-149"
+        },
+        {
+          "name": "SNTRLMDK",
+          "value": "149"
+        },
+        {
+          "name": "SNTRLMDA",
+          "value": "ILKADIM"
+        },
+        {
+          "name": "SNTRLIDT",
+          "value": "55149000000000050"
+        },
+        {
+          "name": "DSLMXSPD",
+          "value": "N/A"
+        },
+        {
+          "name": "IPVMXSPD",
+          "value": "N/A"
+        },
+        {
+          "name": "SNTRLMSF",
+          "value": "N/A"
+        },
+        {
+          "name": "FIBERX",
+          "value": "1"
+        },
+        {
+          "name": "NDSLX",
+          "value": "N/A"
+        },
+        {
+          "name": "MPLSBGL",
+          "value": "N/A"
+        },
+        {
+          "name": "ACKISEMRI",
+          "value": " | | "
+        },
+        {
+          "name": "SNTRLT11",
+          "value": "N/A"
+        },
+        {
+          "name": "SNTRLPRTT11",
+          "value": "N/A"
+        },
+        {
+          "name": "MEVCTHZ",
+          "value": "N/A"
+        },
+        {
+          "name": "NMSMAX",
+          "value": "N/A"
+        },
+        {
+          "name": "ISIPVOK",
+          "value": "1"
+        },
+        {
+          "name": "GREENBROWN",
+          "value": "G"
+        },
+        {
+          "name": "ISFTTC",
+          "value": "N/A"
+        },
+        {
+          "name": "ISINDOOR",
+          "value": "N/A"
+        },
+        {
+          "name": "FTTXTYPE",
+          "value": "1"
+        },
+        {
+          "name": "FTTX1GB",
+          "value": "-1"
+        },
+        {
+          "name": "CRDTYP",
+          "value": ""
+        },
+        {
+          "name": "SVUID",
+          "value": "19768681406"
+        },
+        {
+          "name": "BSPRTADSL",
+          "value": "0"
+        }
+      ],
+      "VdslVeriler": [
+        {
+          "name": "SNTRLHZMT",
+          "value": "N/A"
+        },
+        {
+          "name": "BSPRT",
+          "value": "1"
+        },
+        {
+          "name": "IPDSLM",
+          "value": "N/A"
+        },
+        {
+          "name": "IPTVHZMT",
+          "value": "1"
+        },
+        {
+          "name": "SNTRLIDX",
+          "value": "14900050"
+        },
+        {
+          "name": "SNTRLAD",
+          "value": "ATAKUM-149"
+        },
+        {
+          "name": "SNTRLMDK",
+          "value": "149"
+        },
+        {
+          "name": "SNTRLMDA",
+          "value": "ILKADIM"
+        },
+        {
+          "name": "SNTRLIDT",
+          "value": "55149000000000050"
+        },
+        {
+          "name": "DSLMXSPD",
+          "value": "N/A"
+        },
+        {
+          "name": "IPVMXSPD",
+          "value": "N/A"
+        },
+        {
+          "name": "SNTRLMSF",
+          "value": "N/A"
+        },
+        {
+          "name": "FIBERX",
+          "value": "1"
+        },
+        {
+          "name": "NDSLX",
+          "value": "N/A"
+        },
+        {
+          "name": "MPLSBGL",
+          "value": "N/A"
+        },
+        {
+          "name": "ACKISEMRI",
+          "value": " | | "
+        },
+        {
+          "name": "SNTRLT11",
+          "value": "N/A"
+        },
+        {
+          "name": "SNTRLPRTT11",
+          "value": "N/A"
+        },
+        {
+          "name": "MEVCTHZ",
+          "value": "N/A"
+        },
+        {
+          "name": "NMSMAX",
+          "value": "N/A"
+        },
+        {
+          "name": "ISIPVOK",
+          "value": "1"
+        },
+        {
+          "name": "GREENBROWN",
+          "value": "G"
+        },
+        {
+          "name": "ISFTTC",
+          "value": "N/A"
+        },
+        {
+          "name": "ISINDOOR",
+          "value": "N/A"
+        },
+        {
+          "name": "FTTXTYPE",
+          "value": "1"
+        },
+        {
+          "name": "FTTX1GB",
+          "value": "-1"
+        },
+        {
+          "name": "CRDTYP",
+          "value": ""
+        },
+        {
+          "name": "SVUID",
+          "value": "19768675669"
+        }
+      ],
+      "FiberVeriler": [
+        {
+          "name": "SNTRLHZMT",
+          "value": "1"
+        },
+        {
+          "name": "BSPRT",
+          "value": "1"
+        },
+        {
+          "name": "IPDSLM",
+          "value": "N/A"
+        },
+        {
+          "name": "IPTVHZMT",
+          "value": "1"
+        },
+        {
+          "name": "SNTRLIDX",
+          "value": "14900050"
+        },
+        {
+          "name": "SNTRLAD",
+          "value": "ATAKUM-149"
+        },
+        {
+          "name": "SNTRLMDK",
+          "value": "149"
+        },
+        {
+          "name": "SNTRLMDA",
+          "value": "ILKADIM"
+        },
+        {
+          "name": "SNTRLIDT",
+          "value": "55149000000000050"
+        },
+        {
+          "name": "DSLMXSPD",
+          "value": "0"
+        },
+        {
+          "name": "IPVMXSPD",
+          "value": "0"
+        },
+        {
+          "name": "SNTRLMSF",
+          "value": "0"
+        },
+        {
+          "name": "FIBERX",
+          "value": "1"
+        },
+        {
+          "name": "NDSLX",
+          "value": "1"
+        },
+        {
+          "name": "ACKISEMRI",
+          "value": " | | "
+        },
+        {
+          "name": "SNTRLT11",
+          "value": "N/A"
+        },
+        {
+          "name": "SNTRLPRTT11",
+          "value": "N/A"
+        },
+        {
+          "name": "MEVCTHZ",
+          "value": "N/A"
+        },
+        {
+          "name": "NMSMAX",
+          "value": "N/A"
+        },
+        {
+          "name": "ISIPVOK",
+          "value": "1"
+        },
+        {
+          "name": "GREENBROWN",
+          "value": "G"
+        },
+        {
+          "name": "ISFTTC",
+          "value": "N/A"
+        },
+        {
+          "name": "ISINDOOR",
+          "value": "N/A"
+        },
+        {
+          "name": "FTTXTYPE",
+          "value": "1"
+        },
+        {
+          "name": "FTTX1GB",
+          "value": "-2"
+        },
+        {
+          "name": "CRDTYP",
+          "value": "N/A"
+        },
+        {
+          "name": "SVUID",
+          "value": "19768675697"
+        },
+        {
+          "name": "STTKIP",
+          "value": "1"
+        },
+        {
+          "name": "MPLSBGL",
+          "value": "1"
+        },
+        {
+          "name": "DSLT11",
+          "value": ""
+        },
+        {
+          "name": "XDSLMPLSBGL",
+          "value": "N/A"
+        }
+      ],
+      "AcikAdres": "ÇOBANLI  MAH. AYDINLIK CAD. NO: 117 B DAİRE: 1        ATAKUM/SAMSUN",
+      "adslSoapReturn": "819 gün",
+      "vdslSoapReturn": "PSTN ve BBK ile aktif abonelik yok",
+      "fiberSoapReturn": "PSTN ve BBK ile aktif abonelik yok",
+      "AdslDurum": 0,
+      "VdslDurum": 0,
+      "FiberDurum": "1",
+      "AdslHizmetDurumu": 0,
+      "SantralAdi": "ATAKUM-149",
+      "SantralMesafe": 0,
+      "AdslMaksimumHiz": 0,
+      "VdslMaksimumHiz": 0,
+      "BosPort": 0,
+      "VdslBosPort": 0,
+      "FiberBosPort": "1",
+      "VdslHizmetDurum": 0,
+      "FiberHizmetDurum": 1
+    }
+  },
+  "superonline_dsmart_yaniti": {
+    "meta": {
+      "code": 200,
+      "message": "OK"
+    },
+    "data": [
+      {
+        "maxSpeed": "1000 Mbps",
+        "tech": "Fiber",
+        "portAvailable": true,
+        "description": null,
+        "provider": "TT"
+      }
+    ],
+    "raw_response_success_preview": "{\"meta\": {\"code\": 200, \"message\": \"OK\"}, \"data\": [{\"maxSpeed\": \"1000 Mbps\", \"tech\": \"Fiber\", \"portAvailable\": true, \"description\": null, \"provider\": \"TT\"}]}"
+  }
+}
