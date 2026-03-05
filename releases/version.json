@@ -1,13 +1,14 @@
 {
   "latestVersion": "1.0.0",
-  "versionCode": 18,
-  "buildTag": "v1.0.0+18",
+  "versionCode": 19,
+  "buildTag": "v1.0.0+19",
   "apkUrl": "https://github.com/tarihcituranx/test/raw/main/releases/latest/app-release.apk",
-  "releaseDate": "2026-03-05T00:32:56Z",
-  "changelog": "Merge pull request #4 from tarihcituranx/copilot/fix-android-license-issue
-
-Add transfer rules, OSRM road polylines, ring direction switch, SamAir line names",
-  "releaseNotes": "- Merge pull request #4 from tarihcituranx/copilot/fix-android-license-issue
+  "releaseDate": "2026-03-05T10:31:47Z",
+  "changelog": "Add GitHub Actions workflow to create keystore",
+  "releaseNotes": "- Add GitHub Actions workflow to create keystore
+- brain: hafıza güncellendi — 05.03.2026 00:37
+- build: v1.0.0+18 - APK yayınlandı
+- Merge pull request #4 from tarihcituranx/copilot/fix-android-license-issue
 - Add transfer rules, OSRM road polylines, ring direction switch, SamAir names, logo resize
 - brain: hafıza güncellendi — 05.03.2026 00:06
 - build: v1.0.0+17 - APK yayınlandı
@@ -30,7 +31,7 @@ Add transfer rules, OSRM road polylines, ring direction switch, SamAir line name
 - Refactor category detection to use grep directly
 - brain: hafıza güncellendi — 04.03.2026 22:40
 - docs: Proje mimari haritası güncellendi — v1.0.0",
-  "buildDuration": "660s",
+  "buildDuration": "853s",
   "apkSize": "80M",
   "minSupportedVersion": "1.0.0",
   "forceUpdate": false
