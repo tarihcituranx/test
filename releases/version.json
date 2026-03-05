@@ -3,9 +3,10 @@
   "versionCode": 18,
   "buildTag": "v1.0.0+18",
   "apkUrl": "https://github.com/tarihcituranx/test/raw/main/releases/latest/app-release.apk",
-  "releaseDate": "2026-03-05T00:18:20Z",
-  "changelog": "build: v1.0.0+17 - APK yayınlandı",
-  "releaseNotes": "- build: v1.0.0+17 - APK yayınlandı
+  "releaseDate": "2026-03-05T00:22:48Z",
+  "changelog": "brain: hafıza güncellendi — 05.03.2026 00:06",
+  "releaseNotes": "- brain: hafıza güncellendi — 05.03.2026 00:06
+- build: v1.0.0+17 - APK yayınlandı
 - brain: hafıza güncellendi — 04.03.2026 23:48
 - build: v1.0.0+16 - APK yayınlandı
 - brain: hafıza güncellendi — 04.03.2026 23:29
@@ -15,7 +16,7 @@
 - Refactor category detection to use grep directly
 - brain: hafıza güncellendi — 04.03.2026 22:40
 - docs: Proje mimari haritası güncellendi — v1.0.0",
-  "buildDuration": "820s",
+  "buildDuration": "850s",
   "apkSize": "80M",
   "minSupportedVersion": "1.0.0",
   "forceUpdate": false
