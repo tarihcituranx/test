@@ -3,15 +3,16 @@
   "versionCode": 25,
   "buildTag": "v1.0.0+25",
   "apkUrl": "https://github.com/tarihcituranx/test/raw/main/releases/latest/app-release.apk",
-  "releaseDate": "2026-03-05T12:19:41Z",
-  "changelog": "build: v1.0.0+24 - APK yayınlandı",
-  "releaseNotes": "- build: v1.0.0+24 - APK yayınlandı
+  "releaseDate": "2026-03-05T12:21:26Z",
+  "changelog": "brain: hafıza güncellendi — 05.03.2026 12:07",
+  "releaseNotes": "- brain: hafıza güncellendi — 05.03.2026 12:07
+- build: v1.0.0+24 - APK yayınlandı
 - brain: hafıza güncellendi — 05.03.2026 11:47
 - build: v1.0.0+23 - APK yayınlandı
 - brain: hafıza güncellendi — 05.03.2026 11:28
 - build: v1.0.0+22 - APK yayınlandı
 - brain: hafıza güncellendi — 05.03.2026 11:09",
-  "buildDuration": "869s",
+  "buildDuration": "734s",
   "apkSize": "80M",
   "minSupportedVersion": "1.0.0",
   "forceUpdate": false
