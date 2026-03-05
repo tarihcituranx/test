@@ -3,9 +3,12 @@
   "versionCode": 19,
   "buildTag": "v1.0.0+19",
   "apkUrl": "https://github.com/tarihcituranx/test/raw/main/releases/latest/app-release.apk",
-  "releaseDate": "2026-03-05T10:31:47Z",
-  "changelog": "Add GitHub Actions workflow to create keystore",
-  "releaseNotes": "- Add GitHub Actions workflow to create keystore
+  "releaseDate": "2026-03-05T10:35:06Z",
+  "changelog": "Update GitHub Actions workflow for APK build process",
+  "releaseNotes": "- Update GitHub Actions workflow for APK build process
+- Update create_keystore.yml
+- Refactor keystore workflow for consistency and clarity
+- Add GitHub Actions workflow to create keystore
 - brain: hafıza güncellendi — 05.03.2026 00:37
 - build: v1.0.0+18 - APK yayınlandı
 - Merge pull request #4 from tarihcituranx/copilot/fix-android-license-issue
@@ -31,7 +34,7 @@
 - Refactor category detection to use grep directly
 - brain: hafıza güncellendi — 04.03.2026 22:40
 - docs: Proje mimari haritası güncellendi — v1.0.0",
-  "buildDuration": "853s",
+  "buildDuration": "559s",
   "apkSize": "80M",
   "minSupportedVersion": "1.0.0",
   "forceUpdate": false
