@@ -1,24 +1,12 @@
 {
   "latestVersion": "1.0.0",
-  "versionCode": 27,
-  "buildTag": "v1.0.0+27",
+  "versionCode": 28,
+  "buildTag": "v1.0.0+28",
   "apkUrl": "https://github.com/tarihcituranx/test/raw/main/releases/latest/app-release.apk",
-  "releaseDate": "2026-03-05T13:12:33Z",
-  "changelog": "brain: hafıza güncellendi — 05.03.2026 12:56",
-  "releaseNotes": "- brain: hafıza güncellendi — 05.03.2026 12:56
-- build: v1.0.0+26 - APK yayınlandı
-- Add files via upload
-- Update api_service.dart
-- brain: hafıza güncellendi — 05.03.2026 12:25
-- build: v1.0.0+25 - APK yayınlandı
-- brain: hafıza güncellendi — 05.03.2026 12:07
-- build: v1.0.0+24 - APK yayınlandı
-- brain: hafıza güncellendi — 05.03.2026 11:47
-- build: v1.0.0+23 - APK yayınlandı
-- brain: hafıza güncellendi — 05.03.2026 11:28
-- build: v1.0.0+22 - APK yayınlandı
-- brain: hafıza güncellendi — 05.03.2026 11:09",
-  "buildDuration": "863s",
+  "releaseDate": "2026-03-05T16:30:55Z",
+  "changelog": "Otomatik build - v1.0.0+28",
+  "releaseNotes": "- Create keystore-yenile.yml\n- Enhance keystore validation in build script\n- Enhance keystore handling and signing verification\n- Improve APK build script with keystore checks\n- Update main.yml\n- Refactor logging and error handling in build script\n- Update main.yml\n- Merge pull request #6 from tarihcituranx/copilot/test-api-service-endpoints\n- brain: hafıza güncellendi — 05.03.2026 13:16\n- Final: Code review fixes, improved ASIS type parsing comments\n- build: v1.0.0+27 - APK yayınlandı\n- GRUP 1-4: CI workflow split, Python test suite, RT bearing fix, build.sh test step, bug report logging\n- GRUP 0: Release signing, MainActivity MethodChannel, UpdateChecker→UpdateService migration, price_service static prices, ASIS schema type fixes\n- brain: hafıza güncellendi — 05.03.2026 12:56\n- build: v1.0.0+26 - APK yayınlandı\n- Initial plan\n- Add files via upload\n- Update api_service.dart\n- brain: hafıza güncellendi — 05.03.2026 12:25\n- build: v1.0.0+25 - APK yayınlandı\n- brain: hafıza güncellendi — 05.03.2026 12:07\n- build: v1.0.0+24 - APK yayınlandı\n- brain: hafıza güncellendi — 05.03.2026 11:47\n- build: v1.0.0+23 - APK yayınlandı\n- brain: hafıza güncellendi — 05.03.2026 11:28\n- build: v1.0.0+22 - APK yayınlandı\n- brain: hafıza güncellendi — 05.03.2026 11:09",
+  "buildDuration": "774s",
   "apkSize": "80M",
   "minSupportedVersion": "1.0.0",
   "forceUpdate": false
